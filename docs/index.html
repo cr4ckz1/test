@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trainingsplan</title>
+<meta name="description" content="Plane, an welchen Tagen und um wie viel Uhr du trainierst.">
+<meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101114" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Training">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f4f5f7;
+    --karte: #ffffff;
+    --text: #15171c;
+    --leise: #6b7180;
+    --linie: #e3e5ea;
+    --akzent: #ff5a36;
+    --akzent-text: #ffffff;
+    --akzent-hell: #fff0ec;
+    --schalter-aus: #d4d7de;
+    --radius: 18px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101114;
+      --karte: #1b1d22;
+      --text: #f2f3f5;
+      --leise: #9096a3;
+      --linie: #2b2e35;
+      --akzent: #ff6b4a;
+      --akzent-text: #ffffff;
+      --akzent-hell: #3a211b;
+      --schalter-aus: #3a3d45;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.4;
+    -webkit-tap-highlight-color: transparent;
+  }
+  main {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: calc(env(safe-area-inset-top) + 20px) 16px calc(env(safe-area-inset-bottom) + 32px);
+  }
+
+  h1 { font-size: 30px; letter-spacing: -0.02em; margin: 4px 0 18px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--leise); margin: 28px 4px 10px; font-weight: 600; }
+
+  .karte { background: var(--karte); border-radius: var(--radius); }
+
+  /* ---------- Nächstes Training ---------- */
+  .naechstes {
+    background: var(--akzent);
+    color: var(--akzent-text);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .naechstes .label { font-size: 14px; opacity: 0.85; font-weight: 600; }
+  .naechstes .wann { font-size: 28px; font-weight: 700; letter-spacing: -0.01em; margin-top: 2px; }
+  .naechstes .countdown { font-size: 15px; opacity: 0.9; margin-top: 2px; }
+  .naechstes.leer { background: var(--karte); color: var(--text); }
+  .naechstes.leer .wann { font-size: 20px; }
+  .naechstes.leer .countdown { color: var(--leise); }
+
+  /* ---------- Übersicht ---------- */
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .stat { padding: 14px 16px; }
+  .stat .zahl { font-size: 24px; font-weight: 700; }
+  .stat .text { font-size: 13px; color: var(--leise); }
+
+  .wochenstreifen { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 10px; padding: 12px; }
+  .punkt { text-align: center; font-size: 12px; color: var(--leise); font-weight: 600; }
+  .punkt span {
+    display: grid; place-items: center;
+    width: 100%; aspect-ratio: 1; max-width: 40px; margin: 0 auto 4px;
+    border-radius: 50%; background: var(--bg); color: var(--leise); font-size: 13px;
+  }
+  .punkt.aktiv span { background: var(--akzent); color: var(--akzent-text); }
+  .punkt.heute { color: var(--text); }
+  .punkt.heute span { outline: 2px solid var(--text); outline-offset: 2px; }
+
+  /* ---------- Tagesliste ---------- */
+  .tage { overflow: hidden; }
+  .tag { border-top: 1px solid var(--linie); }
+  .tag:first-child { border-top: 0; }
+  .tag-kopf {
+    display: flex; align-items: center; gap: 12px;
+    width: 100%; padding: 16px; min-height: 60px;
+    background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer;
+  }
+  .tag-name { flex: 1; font-size: 17px; font-weight: 600; }
+  .tag-name small { display: block; font-size: 14px; font-weight: 400; color: var(--leise); }
+  .tag.aktiv .tag-name small { color: var(--akzent); font-weight: 600; }
+  .badge {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    background: var(--akzent-hell); color: var(--akzent); padding: 3px 7px; border-radius: 6px; margin-left: 6px;
+    vertical-align: 2px;
+  }
+
+  .schalter {
+    position: relative; width: 52px; height: 32px; flex-shrink: 0;
+    border-radius: 16px; background: var(--schalter-aus); transition: background 0.2s;
+  }
+  .schalter::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px;
+    border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: transform 0.2s;
+  }
+  .tag.aktiv .schalter { background: var(--akzent); }
+  .tag.aktiv .schalter::after { transform: translateX(20px); }
+
+  .tag-details { display: none; gap: 10px; padding: 0 16px 16px; grid-template-columns: 1fr 1fr; }
+  .tag.aktiv .tag-details { display: grid; }
+  .feld { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--leise); font-weight: 600; }
+  .feld input, .feld select {
+    font: inherit; font-size: 17px; font-weight: 500; color: var(--text);
+    background: var(--bg); border: 1px solid var(--linie); border-radius: 12px;
+    padding: 10px 12px; min-height: 46px; width: 100%;
+    -webkit-appearance: none; appearance: none;
+  }
+  .feld input:focus, .feld select:focus { outline: 2px solid var(--akzent); outline-offset: 1px; }
+
+  /* ---------- Aktionen ---------- */
+  .knopf {
+    display: block; width: 100%; margin-top: 12px; padding: 16px;
+    font: inherit; font-size: 17px; font-weight: 600;
+    border: 0; border-radius: 14px; cursor: pointer;
+    background: var(--karte); color: var(--text);
+  }
+  .knopf.primaer { background: var(--text); color: var(--bg); }
+  .knopf:disabled { opacity: 0.4; cursor: default; }
+  .hinweis { font-size: 14px; color: var(--leise); padding: 14px 16px; margin-top: 12px; }
+  .hinweis strong { color: var(--text); }
+  [hidden] { display: none !important; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 20px);
+    transform: translate(-50%, 20px); opacity: 0; transition: all 0.25s;
+    background: var(--text); color: var(--bg); padding: 12px 18px; border-radius: 12px;
+    font-size: 15px; font-weight: 600; pointer-events: none; max-width: calc(100% - 32px);
+  }
+  .toast.sichtbar { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Trainingsplan</h1>
+
+  <section id="naechstes" class="naechstes" aria-live="polite"></section>
+
+  <div class="stats">
+    <div class="stat karte"><div class="zahl" id="anzahl">0×</div><div class="text">pro Woche</div></div>
+    <div class="stat karte"><div class="zahl" id="gesamtzeit">0 Std</div><div class="text">Trainingszeit</div></div>
+  </div>
+  <div class="wochenstreifen karte" id="streifen" aria-hidden="true"></div>
+
+  <h2>Deine Trainingstage</h2>
+  <div class="tage karte" id="tage"></div>
+
+  <button class="knopf primaer" id="kalender" type="button">📅 In Kalender eintragen</button>
+  <button class="knopf" id="zuruecksetzen" type="button">Alle Tage zurücksetzen</button>
+
+  <p class="hinweis karte" id="installhinweis" hidden></p>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+  "use strict";
+
+  // Index 0 = Montag … 6 = Sonntag
+  const TAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
+  const KURZ = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+  const ICS_TAGE = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
+  const DAUERN = [30, 45, 60, 75, 90, 120];
+  const SPEICHER_KEY = "trainingsplan.v1";
+
+  const standardPlan = () => TAGE.map(() => ({ aktiv: false, zeit: "18:00", dauer: 60 }));
+
+  // ---------- Speichern / Laden ----------
+  function laden() {
+    try {
+      const daten = JSON.parse(localStorage.getItem(SPEICHER_KEY));
+      if (Array.isArray(daten) && daten.length === 7) {
+        return daten.map((t, i) => ({ ...standardPlan()[i], ...t }));
+      }
+    } catch (_) { /* kein Speicher verfügbar */ }
+    return standardPlan();
+  }
+  function speichern() {
+    try { localStorage.setItem(SPEICHER_KEY, JSON.stringify(plan)); } catch (_) {}
+  }
+
+  let plan = laden();
+
+  // ---------- Hilfsfunktionen ----------
+  const wochentagIndex = (datum) => (datum.getDay() + 6) % 7; // JS: 0 = Sonntag
+  const inMinuten = (zeit) => { const [h, m] = zeit.split(":").map(Number); return h * 60 + m; };
+
+  function dauerText(minuten) {
+    const h = Math.floor(minuten / 60), m = minuten % 60;
+    if (h && m) return `${h} Std ${m} Min`;
+    if (h) return `${h} Std`;
+    return `${m} Min`;
+  }
+
+  /** Findet den nächsten geplanten Termin ab jetzt. */
+  function naechsterTermin(jetzt = new Date()) {
+    const heute = wochentagIndex(jetzt);
+    const jetztMin = jetzt.getHours() * 60 + jetzt.getMinutes();
+    for (let versatz = 0; versatz <= 7; versatz++) {
+      const index = (heute + versatz) % 7;
+      const tag = plan[index];
+      if (!tag.aktiv) continue;
+      if (versatz === 0 && inMinuten(tag.zeit) <= jetztMin) continue;
+      const datum = new Date(jetzt);
+      datum.setDate(jetzt.getDate() + versatz);
+      const [h, m] = tag.zeit.split(":").map(Number);
+      datum.setHours(h, m, 0, 0);
+      return { index, versatz, datum, tag };
+    }
+    return null;
+  }
+
+  function countdownText(ms) {
+    const min = Math.max(1, Math.round(ms / 60000));
+    if (min < 60) return `in ${min} Min`;
+    const std = Math.floor(min / 60);
+    if (std < 24) return `in ${std} Std ${min % 60} Min`;
+    const tage = Math.floor(std / 24);
+    return `in ${tage} ${tage === 1 ? "Tag" : "Tagen"} ${std % 24} Std`;
+  }
+
+  // ---------- Anzeige ----------
+  const $ = (id) => document.getElementById(id);
+
+  function zeigeNaechstes() {
+    const box = $("naechstes");
+    const termin = naechsterTermin();
+    if (!termin) {
+      box.className = "naechstes leer";
+      box.innerHTML = `<div class="wann">Noch keine Trainingstage geplant</div>
+        <div class="countdown">Schalte unten die Tage ein, an denen du trainieren möchtest.</div>`;
+      return;
+    }
+    const tagText = termin.versatz === 0 ? "Heute"
+      : termin.versatz === 1 ? "Morgen"
+      : termin.versatz === 7 ? `Nächsten ${TAGE[termin.index]}`
+      : TAGE[termin.index];
+    box.className = "naechstes";
+    box.innerHTML = `<div class="label">Nächstes Training</div>
+      <div class="wann">${tagText}, ${termin.tag.zeit} Uhr</div>
+      <div class="countdown">${countdownText(termin.datum - new Date())} · ${dauerText(termin.tag.dauer)}</div>`;
+  }
+
+  function zeigeUebersicht() {
+    const aktive = plan.filter((t) => t.aktiv);
+    $("anzahl").textContent = `${aktive.length}×`;
+    const stunden = aktive.reduce((s, t) => s + t.dauer, 0) / 60;
+    $("gesamtzeit").textContent = `${stunden.toLocaleString("de-DE", { maximumFractionDigits: 2 })} Std`;
+    $("kalender").disabled = aktive.length === 0;
+
+    const heute = wochentagIndex(new Date());
+    $("streifen").innerHTML = plan.map((t, i) =>
+      `<div class="punkt${t.aktiv ? " aktiv" : ""}${i === heute ? " heute" : ""}">
+        <span>${t.aktiv ? "✓" : ""}</span>${KURZ[i]}</div>`).join("");
+  }
+
+  function baueTagesliste() {
+    const heute = wochentagIndex(new Date());
+    $("tage").innerHTML = plan.map((t, i) => `
+      <div class="tag${t.aktiv ? " aktiv" : ""}" data-index="${i}">
+        <button class="tag-kopf" type="button" role="switch" aria-checked="${t.aktiv}">
+          <span class="tag-name">${TAGE[i]}${i === heute ? '<span class="badge">Heute</span>' : ""}
+            <small>${t.aktiv ? `${t.zeit} Uhr · ${dauerText(t.dauer)}` : "Ruhetag"}</small></span>
+          <span class="schalter" aria-hidden="true"></span>
+        </button>
+        <div class="tag-details">
+          <label class="feld">Uhrzeit
+            <input type="time" value="${t.zeit}" data-feld="zeit" step="300">
+          </label>
+          <label class="feld">Dauer
+            <select data-feld="dauer">
+              ${DAUERN.map((d) => `<option value="${d}"${d === t.dauer ? " selected" : ""}>${dauerText(d)}</option>`).join("")}
+            </select>
+          </label>
+        </div>
+      </div>`).join("");
+  }
+
+  function aktualisiereTag(i) {
+    const el = document.querySelector(`.tag[data-index="${i}"]`);
+    const t = plan[i];
+    el.classList.toggle("aktiv", t.aktiv);
+    el.querySelector(".tag-kopf").setAttribute("aria-checked", t.aktiv);
+    el.querySelector("small").textContent = t.aktiv ? `${t.zeit} Uhr · ${dauerText(t.dauer)}` : "Ruhetag";
+  }
+
+  function allesAnzeigen() {
+    zeigeNaechstes();
+    zeigeUebersicht();
+  }
+
+  let toastTimer;
+  function toast(text) {
+    const el = $("toast");
+    el.textContent = text;
+    el.classList.add("sichtbar");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("sichtbar"), 2500);
+  }
+
+  // ---------- Kalender-Export (.ics) ----------
+  const zweistellig = (n) => String(n).padStart(2, "0");
+  const icsDatum = (d) =>
+    `${d.getFullYear()}${zweistellig(d.getMonth() + 1)}${zweistellig(d.getDate())}T${zweistellig(d.getHours())}${zweistellig(d.getMinutes())}00`;
+
+  function erstelleIcs(jetzt = new Date()) {
+    const heute = wochentagIndex(jetzt);
+    const zeilen = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Trainingsplan//DE", "CALSCALE:GREGORIAN"];
+    plan.forEach((t, i) => {
+      if (!t.aktiv) return;
+      const start = new Date(jetzt);
+      start.setDate(jetzt.getDate() + ((i - heute + 7) % 7));
+      const [h, m] = t.zeit.split(":").map(Number);
+      start.setHours(h, m, 0, 0);
+      const ende = new Date(start.getTime() + t.dauer * 60000);
+      zeilen.push(
+        "BEGIN:VEVENT",
+        `UID:training-${ICS_TAGE[i]}-${Date.now()}@trainingsplan`,
+        `DTSTAMP:${icsDatum(jetzt)}`,
+        `DTSTART:${icsDatum(start)}`,
+        `DTEND:${icsDatum(ende)}`,
+        `RRULE:FREQ=WEEKLY;BYDAY=${ICS_TAGE[i]}`,
+        "SUMMARY:💪 Training",
+        "BEGIN:VALARM",
+        "ACTION:DISPLAY",
+        "DESCRIPTION:Gleich ist Training!",
+        "TRIGGER:-PT30M",
+        "END:VALARM",
+        "END:VEVENT",
+      );
+    });
+    zeilen.push("END:VCALENDAR");
+    return zeilen.join("\r\n");
+  }
+
+  function kalenderExport() {
+    const blob = new Blob([erstelleIcs()], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "trainingsplan.ics";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    toast("Kalenderdatei erstellt – öffne sie, um die Termine zu übernehmen");
+  }
+
+  // ---------- Ereignisse ----------
+  $("tage").addEventListener("click", (e) => {
+    const kopf = e.target.closest(".tag-kopf");
+    if (!kopf) return;
+    const i = Number(kopf.parentElement.dataset.index);
+    plan[i].aktiv = !plan[i].aktiv;
+    speichern();
+    aktualisiereTag(i);
+    allesAnzeigen();
+  });
+
+  $("tage").addEventListener("change", (e) => {
+    const feld = e.target.dataset.feld;
+    if (!feld) return;
+    const i = Number(e.target.closest(".tag").dataset.index);
+    if (feld === "zeit") {
+      if (!e.target.value) { e.target.value = plan[i].zeit; return; }
+      plan[i].zeit = e.target.value;
+    } else {
+      plan[i].dauer = Number(e.target.value);
+    }
+    speichern();
+    aktualisiereTag(i);
+    allesAnzeigen();
+  });
+
+  $("kalender").addEventListener("click", kalenderExport);
+
+  $("zuruecksetzen").addEventListener("click", () => {
+    if (!plan.some((t) => t.aktiv)) return;
+    if (!confirm("Alle Trainingstage ausschalten?")) return;
+    plan = standardPlan();
+    speichern();
+    baueTagesliste();
+    allesAnzeigen();
+  });
+
+  // ---------- Hinweis zum Installieren ----------
+  const istInstalliert = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  if (!istInstalliert) {
+    const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    $("installhinweis").innerHTML = ios
+      ? "📲 <strong>Als App installieren:</strong> Tippe in Safari auf <strong>Teilen</strong> (□↑) und dann auf <strong>„Zum Home-Bildschirm“</strong>."
+      : "📲 <strong>Als App installieren:</strong> Öffne das Browser-Menü (⋮) und tippe auf <strong>„Zum Startbildschirm hinzufügen“</strong> bzw. <strong>„App installieren“</strong>.";
+    $("installhinweis").hidden = false;
+  }
+
+  // ---------- Start ----------
+  baueTagesliste();
+  allesAnzeigen();
+  setInterval(allesAnzeigen, 30000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { baueTagesliste(); allesAnzeigen(); } });
+
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+
+  // Für Tests im Browser erreichbar machen
+  window.__trainingsplan = { naechsterTermin, erstelleIcs, get plan() { return plan; } };
+})();
+</script>
+</body>
+</html>

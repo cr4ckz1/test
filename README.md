@@ -70,3 +70,21 @@ tests/
 ```
 
 Eigene Übungen kannst du einfach in `fitnessplaner/uebungen.py` ergänzen.
+
+---
+
+# 📱 Trainingsplan – Web-App fürs Handy
+
+Im Ordner [`docs/`](docs/) liegt eine einfache Web-App, mit der du planst,
+**an welchen Tagen und um wie viel Uhr** du trainierst. Du kannst sie auf den Home-Bildschirm legen.
+
+- Wochentage per Schalter an- und ausschalten, jeweils mit Uhrzeit und Dauer
+- Anzeige des nächsten Trainings mit Countdown
+- Übersicht: wie oft pro Woche und wie viele Stunden insgesamt
+- „In Kalender eintragen“: wöchentliche Termine mit Erinnerung 30 Minuten vorher (.ics-Datei)
+- Funktioniert offline, die Daten bleiben nur auf deinem Gerät
+- Heller und dunkler Modus
+
+Es gibt keine Abhängigkeiten. Die App besteht nur aus HTML, CSS und JavaScript.
+
+**Lokal ausprobieren:** `cd docs && python3 -m http.server`, danach http://localhost:8000 öffnen.
